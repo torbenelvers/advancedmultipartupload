@@ -44,6 +44,7 @@ def multipart_upload_boto3(filename, bucketname, partsize):
                         max_concurrency=10,
                         multipart_chunksize=1024 * partsize * 1024,
                         use_threads=True,
+                        )
     s3_resource.Object(bucketname, key).upload_file(file_path,
                             Config=config,
                             Callback=ProgressPercentage(file_path)
