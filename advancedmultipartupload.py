@@ -8,6 +8,7 @@
 #and compares to the Etag returned from the AWS multipart upload.
 #A log file outputlog.txt is written after the upload  
 
+import logging 
 import boto3
 from boto3.s3.transfer import TransferConfig
 import os
@@ -70,6 +71,20 @@ class ProgressPercentage(object):
             sys.stdout.flush()
 
 #main
+
+#logging
+logging.basicConfig(filename="std.log", 
+					format='%(asctime)s %(message)s', 
+					filemode='w') 
+logger=logging.getLogger()
+logger.setLevel(logging.INFO)
+
+#logger.debug("This is just a harmless debug message") 
+#logger.info("This is just an information for you") 
+#logger.warning("OOPS!!!Its a Warning") 
+#logger.error("Have you try to divide a number by zero") 
+#logger.critical("The Internet is not working....")
+
 print('Advanced Multipart Upload 1.1 T.Elvers 2022')
 
 parser = argparse.ArgumentParser()
@@ -82,7 +97,7 @@ parser.add_argument('--destbucket',
                     help='S3 bucket for uploading or for reading the s3 etag if in gets3etag mode.')
 parser.add_argument('--partsize',
                     type=int,
-                    help='Size of individual parts in GB')
+                    help='Size of individual parts in GB.')
 parser.add_argument('--accesskey',
                     help='AWS accesskey')
 parser.add_argument('--secretkey',
@@ -93,12 +108,7 @@ parser.add_argument('--example',
                     help='Get an example for upload or getlocaletag or gets3etag')
 
 cli_options = parser.parse_args()
-original_stdout = sys.stdout
-a = ''
-b = ''
-c = ''
-d = ''
-e = ''
+
 s3_resource = boto3.resource('s3')
 
 if (cli_options.mode != 'upload') and (cli_options.mode != 'getlocaletag') and (cli_options.mode != 'gets3etag'):
@@ -148,7 +158,7 @@ if cli_options.mode == 'upload':
     
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
-    a = current_time + ' Multipartupload of: ' + cli_options.filename + ' into bucket: ' + cli_options.destbucket + ' started.'
+    logger.info('Multipartupload of: ' + cli_options.filename + ' into bucket: ' + cli_options.destbucket + ' started.')
     print(current_time +' Multipartupload of: ' + cli_options.filename + ' into bucket: ' + cli_options.destbucket + ' started.')
     
     multipart_upload_boto3(cli_options.filename,cli_options.destbucket, cli_options.partsize*1024)
@@ -157,7 +167,7 @@ if cli_options.mode == 'upload':
     current_time = now.strftime("%H:%M:%S")
     print('')
     print(current_time + ' Multipartupload of: ' + cli_options.filename + ' into bucket: ' + cli_options.destbucket + ' finished.')
-    b = current_time + ' Multipartupload of: ' + cli_options.filename + ' into bucket: ' + cli_options.destbucket + ' finished.'
+    logger.info('Multipartupload of: ' + cli_options.filename + ' into bucket: ' + cli_options.destbucket + ' finished.')
 
     file_path2 = cli_options.filename
     key2 = os.path.basename(file_path2) 
@@ -166,25 +176,18 @@ if cli_options.mode == 'upload':
 
     etag = (obj_dict['ETag'])
     print('Fetched Etag(Based on MD5) of uploaded file: ' + etag)
-    c = 'Fetched Etag(Based on MD5) of uploaded file: ' + etag
+    logger.info('Fetched Etag(Based on MD5) of uploaded file: ' + etag)
 
     fetag = etag_checksum(cli_options.filename, cli_options.partsize*1024)    
     print('Calculated Etag(Based on MD5) of local file:', '"' + fetag + '"')
-    d = 'Calculated Etag(Based on MD5) of local file: ' + '"' + fetag + '"'
+    logger.info('Calculated Etag(Based on MD5) of local file: ' + '"' + fetag + '"')
 
     fetag = '"' + fetag + '"'
     if etag == fetag:
         now = datetime.now()
         current_time = now.strftime("%H:%M:%S")
         print(current_time + ' Upload succeeded.')
-        e = current_time + ' Upload succeeded.'
-
-with open('uploadlog.txt', 'w') as f:
-    sys.stdout = f
-    print(a)
-    print(b)
-    print(c)
-    print(d)
-    print(e)
-
-    sys.stdout = original_stdout
+        logger.info('Upload succeeded.')
+    else:
+         print(current_time + ' Upload failed.')
+         logger.error('Upload failed.')
