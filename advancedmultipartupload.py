@@ -1,16 +1,5 @@
-#Multipart Upload 1.2 (c) Torben Elvers, 2022
-#AWS allows multipart uploads which is much more performant when uploading files, e.g.
-#when you decide to upload large zip files in order to save costs when using
-#S3 deep archive
-#AWS S3 returns an Etag for the uploaded file after the multipart upload which is basically
-#the combined MD5 of the single MD5 hashes of the uploaded parts
-#Advanced Multipart Upload calculates the ETag for uploaded files on the local drive after upload
-#and compares to the Etag returned from the AWS multipart upload.
-#A log file outputlog.txt is written after the upload  
-
 import logging 
 import boto3
-from boto3.s3.transfer import TransferConfig
 import os
 import threading
 import sys
@@ -18,6 +7,7 @@ import argparse
 import hashlib
 import json
 from datetime import datetime
+from boto3.s3.transfer import TransferConfig
 
 def md5_checksum(filename):
     m = hashlib.md5()
@@ -38,6 +28,7 @@ def etag_checksum(filename, partsize):
     return '{}-{}'.format(m.hexdigest(), len(md5s))
 
 def multipart_upload_boto3(filename, bucketname, partsize):
+    s3_resource = boto3.resource('s3')
     file_path = filename
     key = os.path.basename(file_path) 
 
@@ -71,6 +62,7 @@ class ProgressPercentage(object):
             sys.stdout.flush()
 
 #main
+print('Advanced Multipart Upload 1.1 T.Elvers 2022')
 
 #logging
 logging.basicConfig(filename="std.log", 
@@ -79,31 +71,29 @@ logging.basicConfig(filename="std.log",
 logger=logging.getLogger()
 logger.setLevel(logging.INFO)
 
-print('Advanced Multipart Upload 1.1 T.Elvers 2022')
-
+#parse arguments
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--mode',
-                    help="Mode is either 'upload' or 'getlocaletag' or 'gets3etag'.")
+                    help="Mode is either 'upload' or 'getlocaletag' or 'gets3etag'. Required.")
 parser.add_argument('--filename',
-                    help='File to be uploaded.')
+                    help='File to be uploaded. Required.')
 parser.add_argument('--destbucket',
-                    help='S3 bucket for uploading or for reading the s3 etag if in gets3etag mode.')
+                    help="S3 bucket for uploading or for reading the s3 etag if in gets3etag mode. Required except for mode 'getlocaetag'.")
 parser.add_argument('--partsize',
                     type=int,
-                    help='Size of individual parts in GB.')
+                    help='Size of individual parts in GB. Required.')
 parser.add_argument('--accesskey',
-                    help='AWS accesskey')
+                    help='AWS accesskey. Optional.')
 parser.add_argument('--secretkey',
-                    help='AWS secret key')
+                    help='AWS secret key. Optional.')
 parser.add_argument('--region',
-                    help='region')
+                    help='AWS region. Optional.')
 parser.add_argument('--example',
-                    help="Get an example for 'upload' or 'getlocaletag' or 'gets3etag'")
+                    help="Get an example for 'upload' or 'getlocaletag' or 'gets3etag'. Optional.")
 
 cli_options = parser.parse_args()
 
-s3_resource = boto3.resource('s3')
 
 if (cli_options.mode != 'upload') and (cli_options.mode != 'getlocaletag') and (cli_options.mode != 'gets3etag'):
     print('py advancedmultipartupload.py --mode upload --filename file.7z --destbucket testbucket --partsize 5 --accesskey 1234ABCD --secretkey 1234ABCD --region eu-central-1')
@@ -133,7 +123,6 @@ if cli_options.mode == 'gets3etag':
             'ETag',
         ]
     )
-    
     print("Etag: " + response['ETag'])
 
 if cli_options.mode == 'upload':
@@ -163,10 +152,10 @@ if cli_options.mode == 'upload':
     print(current_time + ' Multipartupload of: ' + cli_options.filename + ' into bucket: ' + cli_options.destbucket + ' finished.')
     logger.info('Multipartupload of: ' + cli_options.filename + ' into bucket: ' + cli_options.destbucket + ' finished.')
 
-    file_path2 = cli_options.filename
-    key2 = os.path.basename(file_path2) 
+    file_path = cli_options.filename
+    key = os.path.basename(file_path) 
     s3 = session.client('s3')
-    obj_dict = s3.get_object(Bucket=cli_options.destbucket, Key=key2)
+    obj_dict = s3.get_object(Bucket=cli_options.destbucket, Key=key)
 
     etag = (obj_dict['ETag'])
     print('Fetched Etag(Based on MD5) of uploaded file: ' + etag)
