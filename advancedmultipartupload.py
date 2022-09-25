@@ -1,6 +1,6 @@
-#Multipart Upload 1.1 (c) Torben Elvers, 2022
+#Multipart Upload 1.2 (c) Torben Elvers, 2022
 #AWS allows multipart uploads which is much more performant when uploading files, e.g.
-#when you decide to upload large zip files in order to save costs when usind
+#when you decide to upload large zip files in order to save costs when using
 #S3 deep archive
 #AWS S3 returns an Etag for the uploaded file after the multipart upload which is basically
 #the combined MD5 of the single MD5 hashes of the uploaded parts
@@ -79,12 +79,6 @@ logging.basicConfig(filename="std.log",
 logger=logging.getLogger()
 logger.setLevel(logging.INFO)
 
-#logger.debug("This is just a harmless debug message") 
-#logger.info("This is just an information for you") 
-#logger.warning("OOPS!!!Its a Warning") 
-#logger.error("Have you try to divide a number by zero") 
-#logger.critical("The Internet is not working....")
-
 print('Advanced Multipart Upload 1.1 T.Elvers 2022')
 
 parser = argparse.ArgumentParser()
@@ -105,7 +99,7 @@ parser.add_argument('--secretkey',
 parser.add_argument('--region',
                     help='region')
 parser.add_argument('--example',
-                    help='Get an example for upload or getlocaletag or gets3etag')
+                    help="Get an example for 'upload' or 'getlocaletag' or 'gets3etag'")
 
 cli_options = parser.parse_args()
 
