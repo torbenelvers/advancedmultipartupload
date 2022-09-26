@@ -74,12 +74,7 @@ class ProgressPercentage(object):
 #main
 print('Advanced Multipart Upload 1.1 T.Elvers 2022')
 
-#logging
-logging.basicConfig(filename="std.log", 
-					format='%(asctime)s %(message)s', 
-					filemode='w') 
-logger=logging.getLogger()
-logger.setLevel(logging.INFO)
+
 
 #parse arguments
 parser = argparse.ArgumentParser()
@@ -106,6 +101,7 @@ parser.add_argument('--shutdown',
 
 
 cli_options = parser.parse_args()
+
 
 
 if (cli_options.mode != 'upload') and (cli_options.mode != 'getlocaletag') and (cli_options.mode != 'gets3etag'):
@@ -137,6 +133,14 @@ if cli_options.mode == 'gets3etag':
         ]
     )
     print("Etag: " + response['ETag'])
+
+#logging
+logname = 'log-' + cli_options.filename + '.log'
+logging.basicConfig(filename=logname, 
+					format='%(asctime)s %(message)s', 
+					filemode='w') 
+logger=logging.getLogger()
+logger.setLevel(logging.INFO)
 
 if cli_options.mode == 'upload':
     print('Initializing upload...') 

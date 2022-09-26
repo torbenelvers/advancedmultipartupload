@@ -44,3 +44,4 @@ options:
                         AWS secret key
   --region REGION       region
   --example EXAMPLE     Get an example for upload or getlocaletag or gets3etag
+  --shutdown yes        Shut down PC after upload
