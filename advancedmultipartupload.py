@@ -9,22 +9,29 @@ import json
 from datetime import datetime
 from boto3.s3.transfer import TransferConfig
 
-def md5_checksum(filename):
-    m = hashlib.md5()
-    with open(filename, 'rb') as f:
-        for data in iter(lambda: f.read(1024 * 1024), b''):
-            m.update(data)
-   
-    return m.hexdigest()
+#def md5_checksum(filename):
+#    m = hashlib.md5()
+#    with open(filename, 'rb') as f:
+#        for data in iter(lambda: f.read(1024 * 1024), b''):
+#            m.update(data)
+#   
+#    return m.hexdigest()
 
 def etag_checksum(filename, partsize):
     
+    GB = 1024 ** 3
+    file_stats = os.stat(filename)
     chunk_size=partsize * 1024 * 1024
     md5s = []
+
     with open(filename, 'rb') as f:
+      
         for data in iter(lambda: f.read(chunk_size), b''):
             md5s.append(hashlib.md5(data).digest())
-    m = hashlib.md5(b"".join(md5s))
+    if (file_stats.st_size < GB):
+        m = hashlib.md5(data)
+    else:
+        m = hashlib.md5(b"".join(md5s))
     return '{}-{}'.format(m.hexdigest(), len(md5s))
 
 def multipart_upload_boto3(filename, bucketname, partsize):
@@ -32,7 +39,10 @@ def multipart_upload_boto3(filename, bucketname, partsize):
     file_path = filename
     key = os.path.basename(file_path) 
 
+    GB = 1024 ** 3
+
     config = TransferConfig(
+                        multipart_threshold=GB,
                         max_concurrency=10,
                         multipart_chunksize=1024 * partsize * 1024,
                         use_threads=True,
@@ -91,6 +101,9 @@ parser.add_argument('--region',
                     help='AWS region. Optional.')
 parser.add_argument('--example',
                     help="Get an example for 'upload' or 'getlocaletag' or 'gets3etag'. Optional.")
+parser.add_argument('--shutdown',
+                    help='yes = shutdown after upload')
+
 
 cli_options = parser.parse_args()
 
@@ -158,6 +171,9 @@ if cli_options.mode == 'upload':
     obj_dict = s3.get_object(Bucket=cli_options.destbucket, Key=key)
 
     etag = (obj_dict['ETag'])
+    if len(etag) == 34:
+        etag = etag[0:33]
+        etag = etag + '-1"'
     print('Fetched Etag(Based on MD5) of uploaded file: ' + etag)
     logger.info('Fetched Etag(Based on MD5) of uploaded file: ' + etag)
 
@@ -174,3 +190,6 @@ if cli_options.mode == 'upload':
     else:
          print(current_time + ' Upload failed.')
          logger.error('Upload failed.')
+
+if cli_options.shutdown == 'yes':
+         os.system("shutdown /s /t 1")
