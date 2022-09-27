@@ -19,17 +19,19 @@ from boto3.s3.transfer import TransferConfig
 
 def etag_checksum(filename, partsize):
     
-    GB = 1024 ** 3
+    MB = 1024 ** 2
     file_stats = os.stat(filename)
-    chunk_size=partsize * 1024 * 1024
+    chunk_size=partsize * MB
     md5s = []
 
     with open(filename, 'rb') as f:
       
         for data in iter(lambda: f.read(chunk_size), b''):
             md5s.append(hashlib.md5(data).digest())
-    if (file_stats.st_size < GB):
+
+    if (file_stats.st_size < chunk_size):
         m = hashlib.md5(data)
+   
     else:
         m = hashlib.md5(b"".join(md5s))
     return '{}-{}'.format(m.hexdigest(), len(md5s))
@@ -39,12 +41,12 @@ def multipart_upload_boto3(filename, bucketname, partsize):
     file_path = filename
     key = os.path.basename(file_path) 
 
-    GB = 1024 ** 3
+    MB = 1024 ** 2
 
     config = TransferConfig(
-                        multipart_threshold=GB,
+                        multipart_threshold= partsize * MB,
                         max_concurrency=10,
-                        multipart_chunksize=1024 * partsize * 1024,
+                        multipart_chunksize= partsize * MB,
                         use_threads=True,
                         )
     s3_resource.Object(bucketname, key).upload_file(file_path,
@@ -119,7 +121,7 @@ if cli_options.example == 'getlocaletag':
 
 if cli_options.mode == 'getlocaletag':
     print('Get etag from local file.')
-    fetag = etag_checksum(cli_options.filename, cli_options.partsize*1024)
+    fetag = etag_checksum(cli_options.filename, cli_options.partsize)
     print('Etag of local file:    ', '"' + fetag + '"')
 
 if cli_options.mode == 'gets3etag':
@@ -161,7 +163,7 @@ if cli_options.mode == 'upload':
     logger.info('Multipartupload of: ' + cli_options.filename + ' into bucket: ' + cli_options.destbucket + ' started.')
     print(current_time +' Multipartupload of: ' + cli_options.filename + ' into bucket: ' + cli_options.destbucket + ' started.')
     
-    multipart_upload_boto3(cli_options.filename,cli_options.destbucket, cli_options.partsize*1024)
+    multipart_upload_boto3(cli_options.filename,cli_options.destbucket, cli_options.partsize)
 
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
@@ -181,7 +183,7 @@ if cli_options.mode == 'upload':
     print('Fetched Etag(Based on MD5) of uploaded file: ' + etag)
     logger.info('Fetched Etag(Based on MD5) of uploaded file: ' + etag)
 
-    fetag = etag_checksum(cli_options.filename, cli_options.partsize*1024)    
+    fetag = etag_checksum(cli_options.filename, cli_options.partsize)    
     print('Calculated Etag(Based on MD5) of local file:', '"' + fetag + '"')
     logger.info('Calculated Etag(Based on MD5) of local file: ' + '"' + fetag + '"')
 
