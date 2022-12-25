@@ -9,14 +9,6 @@ import json
 from datetime import datetime
 from boto3.s3.transfer import TransferConfig
 
-#def md5_checksum(filename):
-#    m = hashlib.md5()
-#    with open(filename, 'rb') as f:
-#        for data in iter(lambda: f.read(1024 * 1024), b''):
-#            m.update(data)
-#   
-#    return m.hexdigest()
-
 def etag_checksum(filename, partsize):
     
     MB = 1024 ** 2
@@ -74,9 +66,7 @@ class ProgressPercentage(object):
             sys.stdout.flush()
 
 #main
-print('Advanced Multipart Upload 1.1 T.Elvers 2022')
-
-
+print('Advanced Multipart Upload 1.2 T.Elvers 2022')
 
 #parse arguments
 parser = argparse.ArgumentParser()
@@ -101,10 +91,15 @@ parser.add_argument('--example',
 parser.add_argument('--shutdown',
                     help='yes = shutdown after upload')
 
-
 cli_options = parser.parse_args()
 
-
+#logging
+logname = 'log-' + cli_options.filename + '.log'
+logging.basicConfig(filename=logname, 
+					format='%(asctime)s %(message)s', 
+					filemode='w') 
+logger=logging.getLogger()
+logger.setLevel(logging.INFO)
 
 if (cli_options.mode != 'upload') and (cli_options.mode != 'getlocaletag') and (cli_options.mode != 'gets3etag'):
     print('py advancedmultipartupload.py --mode upload --filename file.7z --destbucket testbucket --partsize 5 --accesskey 1234ABCD --secretkey 1234ABCD --region eu-central-1')
@@ -114,8 +109,10 @@ if (cli_options.mode != 'upload') and (cli_options.mode != 'getlocaletag') and (
 
 if cli_options.example == 'upload':
     print('py advancedmultipartupload.py --mode upload --filename file.7z --destbucket testbucket --partsize 5 --accesskey 1234ABCD --secretkey 1234ABCD --region eu-central-1')
+
 if cli_options.example == 'gets3etag':
     print('py advancedmultipartupload.py --mode gets3etag --filename file.7z --destbucket testbucket')
+
 if cli_options.example == 'getlocaletag':
     print('py advancedmultipartupload.py --mode getlocaletag --filename file.7z --partsize 5')
 
@@ -135,14 +132,6 @@ if cli_options.mode == 'gets3etag':
         ]
     )
     print("Etag: " + response['ETag'])
-
-#logging
-logname = 'log-' + cli_options.filename + '.log'
-logging.basicConfig(filename=logname, 
-					format='%(asctime)s %(message)s', 
-					filemode='w') 
-logger=logging.getLogger()
-logger.setLevel(logging.INFO)
 
 if cli_options.mode == 'upload':
     print('Initializing upload...') 
